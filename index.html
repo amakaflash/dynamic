@@ -27,8 +27,14 @@
     </header>
     
     <main>
+        <!-- ✅ Optimized Banner Section -->
         <section class="banner">
-            <img id="bannerImage" src="images/original banner.svg" alt="Site Banner" loading="lazy">
+            <h2 class="sr-only">Dynamic Athletics Sports - Highlights</h2> 
+            <video autoplay loop muted playsinline class="banner-video" poster="images/banner-placeholder.jpg" preload="auto">
+                <source src="images/banner1.webm" type="video/webm">
+                <source src="images/banner1.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
         </section>
 
         <section class="hero">
@@ -60,9 +66,17 @@
     
     <footer>
         <div class="social-links">
-            <a href="https://www.facebook.com/yourpage" target="_blank" aria-label="Follow us on Facebook"><i class="fab fa-facebook"></i> Facebook</a> |
-            <a href="https://twitter.com/yourprofile" target="_blank" aria-label="Follow us on Twitter"><i class="fab fa-twitter"></i> Twitter</a> |
-            <a href="https://www.instagram.com/yourprofile" target="_blank" aria-label="Follow us on Instagram"><i class="fab fa-instagram"></i> Instagram</a>
+            <a href="https://www.facebook.com/share/1BQvo6jV2D/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook">
+                <i class="fab fa-facebook"></i> Facebook
+            </a> |
+    
+            <a href="#" class="coming-soon" onclick="alert('Twitter Coming Soon!'); return false;" aria-label="Twitter Coming Soon">
+                <i class="fab fa-twitter"></i> Twitter
+            </a> |
+    
+            <a href="https://www.instagram.com/dynamic_athletics_hub?utm_source=qr&igsh=MWJja25ubXF1bDIzaQ==" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram">
+                <i class="fab fa-instagram"></i> Instagram
+            </a>
         </div>        
         <p>&copy; 2025 Dynamic Athletics Sports. All Rights Reserved.</p>
     </footer>

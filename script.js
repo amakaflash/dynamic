@@ -12,9 +12,9 @@ window.onload = function () {
     }
 
     if (document.getElementById("adminNewsDisplay")) {
-        displayNews(true);
+        displayNews(true); // ✅ Runs only on admin page
     } else if (document.getElementById("newsDisplay")) {
-        displayNews(false);
+        displayNews(false); // ✅ Runs only in news.html
     }
 
     if (document.getElementById("adminVideoDisplay")) {
@@ -187,6 +187,33 @@ function deleteResult(year, index) {
     displayResults(true);
 }
 
+function displayNews(isAdmin) {
+    let newsList = JSON.parse(localStorage.getItem("newsArticles")) || [];
+    let newsContainer = document.getElementById(isAdmin ? "adminNewsDisplay" : "newsDisplay");
+
+    if (!newsContainer) return;
+    newsContainer.innerHTML = "";
+
+    if (newsList.length === 0) {
+        newsContainer.innerHTML = "<p>No news available.</p>";
+        return;
+    }
+
+    newsList.forEach((newsItem, index) => {
+        let newsElement = document.createElement("div");
+        newsElement.classList.add("news-item");
+        newsElement.innerHTML = `
+            <h3>${newsItem.title ? newsItem.title : "Untitled News"}</h3>
+            <p><strong>${newsItem.date}</strong></p>
+            <p>${newsItem.content}</p>
+            ${newsItem.image ? `<img src="${newsItem.image}" alt="News Image" width="200px">` : ""}
+            ${isAdmin ? `<button onclick="deleteNews(${index})">Delete</button>` : ""}
+            <hr>
+        `;
+        newsContainer.appendChild(newsElement);
+    });
+}
+
 // ✅ Save News to Local Storage
 function saveNews() {
     let newsTitle = document.getElementById("newsTitle").value.trim();
@@ -219,8 +246,44 @@ function saveNews() {
     }
 }
 
+function deleteNews(index) {
+    let newsList = JSON.parse(localStorage.getItem("newsArticles")) || [];
+
+    if (index < 0 || index >= newsList.length) {
+        alert("Invalid news item selection.");
+        return;
+    }
+
+    newsList.splice(index, 1); // ✅ Remove the selected news item
+    localStorage.setItem("newsArticles", JSON.stringify(newsList)); // ✅ Update storage
+
+    displayNews(true); // ✅ Refresh the admin news list
+}
+
+// ✅ Initialize IndexedDB for Video Storage
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        let request = indexedDB.open("DynamicAthleticsDB", 1);
+
+        request.onupgradeneeded = function (event) {
+            let db = event.target.result;
+            if (!db.objectStoreNames.contains("videos")) {
+                db.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = function (event) {
+            resolve(event.target.result);
+        };
+
+        request.onerror = function (event) {
+            reject("Database error: " + event.target.error);
+        };
+    });
+}
+
 // ✅ Add Multiple Videos
-function addVideo() {
+async function addVideo() {
     let videoTitle = document.getElementById("videoTitle").value.trim();
     let videoFile = document.getElementById("videoFile").files[0];
 
@@ -230,72 +293,102 @@ function addVideo() {
     }
 
     let reader = new FileReader();
-    reader.onload = function (event) {
-        let videos = JSON.parse(localStorage.getItem("videos")) || [];
+    reader.onload = async function (event) {
+        let db = await openDatabase();
+        let transaction = db.transaction(["videos"], "readwrite");
+        let store = transaction.objectStore("videos");
 
-        videos.push({ // ✅ Append new video instead of replacing
+        let request = store.add({
             title: videoTitle || "Untitled Video",
             video: event.target.result,
-            date: new Date().toLocaleDateString()
+            date: new Date().toLocaleDateString(),
         });
 
-        localStorage.setItem("videos", JSON.stringify(videos));
-        alert("Video added successfully!");
+        request.onsuccess = function () {
+            alert("✅ Video added successfully!");
+            document.getElementById("videoTitle").value = "";
+            document.getElementById("videoFile").value = "";
 
-        // ✅ Clear input fields after adding
-        document.getElementById("videoTitle").value = "";
-        document.getElementById("videoFile").value = "";
-
-        // ✅ Refresh both admin and public views
-        displayVideos(true);
-        displayVideos(false);
+            displayVideos(true); // Refresh both public and admin views
+            displayVideos(false);
+        };
     };
+
     reader.readAsDataURL(videoFile);
 }
 
-// ✅ Display Videos (Now Works for Multiple Uploads)
-function displayVideos(isAdmin) {
-    let videos = JSON.parse(localStorage.getItem("videos")) || [];
-    let videoContainer = document.getElementById(isAdmin ? "adminVideoDisplay" : "videoGallery");
+// ✅ Display All Videos
+async function displayVideos(isAdmin) {
+    let db = await openDatabase();
+    let transaction = db.transaction(["videos"], "readonly");
+    let store = transaction.objectStore("videos");
+    let request = store.getAll();
 
-    if (!videoContainer) return;
-    videoContainer.innerHTML = "";
+    request.onsuccess = function () {
+        let videos = request.result;
+        let videoContainer = document.getElementById(isAdmin ? "adminVideoDisplay" : "videoGallery");
 
-    if (videos.length === 0) {
-        videoContainer.innerHTML = "<p>No videos available.</p>";
-        return;
-    }
+        if (!videoContainer) return;
+        videoContainer.innerHTML = "";
 
-    videos.forEach((videoItem, index) => {
-        let videoElement = document.createElement("div");
-        videoElement.classList.add("video-item");
-        videoElement.innerHTML = `
-            <h3>${videoItem.title ? videoItem.title : "Untitled Video"}</h3>
-            <video width="320" height="240" controls>
-                <source src="${videoItem.video}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            <p><strong>Uploaded on: ${videoItem.date}</strong></p>
-            ${isAdmin ? `<button onclick="deleteVideo(${index})" class="delete-btn">Delete</button>` : ""}
-            <hr>
-        `;
-        videoContainer.appendChild(videoElement);
-    });
+        if (videos.length === 0) {
+            videoContainer.innerHTML = "<p>No videos available.</p>";
+            return;
+        }
+
+        videos.forEach((videoItem) => {
+            let videoElement = document.createElement("div");
+            videoElement.classList.add("video-item");
+            videoElement.innerHTML = `
+                <h3>${videoItem.title ? videoItem.title : "Untitled Video"}</h3>
+                <video width="320" height="240" controls>
+                    <source src="${videoItem.video}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p><strong>Uploaded on: ${videoItem.date}</strong></p>
+                ${isAdmin ? `<button onclick="deleteVideo(${videoItem.id})" class="delete-btn">Delete</button>` : ""}
+                <hr>
+            `;
+            videoContainer.appendChild(videoElement);
+        });
+    };
 }
 
-// ✅ Delete Specific Video (Admin Only)
-function deleteVideo(index) {
-    let videos = JSON.parse(localStorage.getItem("videos")) || [];
+// ✅ Delete Specific Video
+async function deleteVideo(id) {
+    let db = await openDatabase();
+    let transaction = db.transaction(["videos"], "readwrite");
+    let store = transaction.objectStore("videos");
 
-    if (index < 0 || index >= videos.length) {
-        alert("Invalid video selection.");
-        return;
-    }
-
-    videos.splice(index, 1); // ✅ Remove the selected video
-    localStorage.setItem("videos", JSON.stringify(videos)); // ✅ Update storage
-
-    // ✅ Refresh both admin and public views after deletion
+    store.delete(id);
+    alert("🗑 Video deleted successfully!");
     displayVideos(true);
     displayVideos(false);
 }
+
+function setupBannerRotation() {
+    let banner = document.getElementById("bannerImage");
+    if (!banner) return; // Exit if banner not found
+
+    let images = [
+        "images/banner1.jpg",
+        "images/banner2.jpg",
+        "images/banner3.jpg"
+    ];
+    let index = 0;
+
+    setInterval(() => {
+        index = (index + 1) % images.length;
+        banner.src = images[index];
+    }, 5000); // Change image every 5 seconds
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    let twitterLink = document.querySelector(".coming-soon");
+    if (twitterLink) {
+        twitterLink.addEventListener("click", function (event) {
+            event.preventDefault(); // Prevents navigation
+            alert("🚀 Twitter Coming Soon!");
+        });
+    }
+});
