@@ -21,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
-const API_URL = "http://172.19.48.119:5000";  // ✅ Replace with your actual API IP
+const API_URL = "http://82.38.210.235:5000"; // ✅ Replace with your actual API IP
 
 // ✅ Make Firebase globally accessible
 window.db = db;
